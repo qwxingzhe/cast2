@@ -64,8 +64,10 @@ func TestCopyStruct(t *testing.T) {
 }
 
 func TestCopyStructMapping(t *testing.T) {
-	demo2 = CopyStructMapping(demo1, demo2, map[string]string{
-		"Key2": "Key3",
+	demo2 = CopyStructAdv(demo1, demo2, FieldConversionConfig{
+		ReplaceField: map[string]string{
+			"Key2": "Key3",
+		},
 	})
 	if demo2.Key3 != 2 {
 		t.Error(`demo2.Key3 != 2`)

@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cast"
 	"log"
 	"reflect"
+	"sort"
 )
 
 func ToMap(obj interface{}) map[string]interface{} {
@@ -77,11 +78,19 @@ func ToString(v any) string {
 
 // CopyStruct 匹配到及赋值
 func CopyStruct[T1 any, T2 any](original T1, aim T2) T2 {
-	return CopyStructMapping[T1, T2](original, aim, map[string]string{})
+	return CopyStructAdv[T1, T2](original, aim, FieldConversionConfig{})
 }
 
-// CopyStructMapping 将目标字段映射赋值
-func CopyStructMapping[T1 any, T2 any](original T1, aim T2, mapConfig map[string]string) T2 {
+type FieldConversionConfig struct {
+	PartialConversionFields []string          //需要进行部分转换的字段，未设置则进行全部转换（源字段）
+	ReplaceField            map[string]string //需要进行的字段替换配置（源字段:新字段）
+}
+
+// CopyStructAdv 将目标字段映射赋值
+func CopyStructAdv[T1 any, T2 any](original T1, aim T2, c FieldConversionConfig) T2 {
+
+	mapConfig := c.ReplaceField
+
 	aimTypeOf := reflect.TypeOf(aim)
 	aimElem := reflect.ValueOf(&aim).Elem()
 
@@ -89,8 +98,15 @@ func CopyStructMapping[T1 any, T2 any](original T1, aim T2, mapConfig map[string
 	v := reflect.ValueOf(original)
 	var discardField []string
 
+	partialConversionFieldsCount := len(c.PartialConversionFields)
+	sort.Strings(c.PartialConversionFields)
+
 	for k := 0; k < t.NumField(); k++ {
 		sourceFieldName := t.Field(k).Name
+		fmt.Println(" ---||| ", sourceFieldName, partialConversionFieldsCount, InStringsSorted(sourceFieldName, c.PartialConversionFields))
+		if partialConversionFieldsCount > 0 && !InStringsSorted(sourceFieldName, c.PartialConversionFields) {
+			continue
+		}
 		sourceFieldKind := t.Field(k).Type.Kind()
 		fieldValue := v.Field(k)
 
@@ -162,6 +178,39 @@ func GetColumn[T any, T2 any](list []T2, key string) []T {
 		vl = append(vl, GetStructValue(i2, key).(T))
 	}
 	return vl
+}
+
+// CreateList 使用一个list创建另外一个list
+func CreateList[T1 any, T2 any](sourceList []T2) []T1 {
+	var aimList []T1
+	for _, item := range sourceList {
+		var aim T1
+		v := CopyStruct(item, aim)
+		aimList = append(aimList, v)
+	}
+	return aimList
+}
+
+func LoadList[T1 any, T2 any](baseList []T1, baseListKey string, newList []T2, newListKey string, c FieldConversionConfig) []T1 {
+
+	// 将 interviewPersonalList 转换成以 InterviewId 为键的map
+	var mapNewList = map[any]T2{}
+	for _, item := range newList {
+		kv := GetStructValue(item, newListKey)
+		mapNewList[kv] = item
+	}
+
+	// 再循环 list 将匹配到的写入
+	for i, item := range baseList {
+		kv := GetStructValue(item, baseListKey)
+		if v, ok := mapNewList[kv]; ok {
+			// 此处需要做字段赋值控制处理
+			item = CopyStructAdv(v, item, c)
+			baseList[i] = item
+		}
+	}
+
+	return baseList
 }
 
 func reflectConversion(sourceFieldValue reflect.Value, aimFieldKind reflect.Kind) (reflect.Value, error) {
