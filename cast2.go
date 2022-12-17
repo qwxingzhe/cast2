@@ -103,7 +103,7 @@ func CopyStructAdv[T1 any, T2 any](original T1, aim T2, c FieldConversionConfig)
 
 	for k := 0; k < t.NumField(); k++ {
 		sourceFieldName := t.Field(k).Name
-		fmt.Println(" ---||| ", sourceFieldName, partialConversionFieldsCount, InStringsSorted(sourceFieldName, c.PartialConversionFields))
+		//fmt.Println(" ---||| ", sourceFieldName, partialConversionFieldsCount, InStringsSorted(sourceFieldName, c.PartialConversionFields))
 		if partialConversionFieldsCount > 0 && !InStringsSorted(sourceFieldName, c.PartialConversionFields) {
 			continue
 		}
@@ -181,11 +181,11 @@ func GetColumn[T any, T2 any](list []T2, key string) []T {
 }
 
 // CreateList 使用一个list创建另外一个list
-func CreateList[T1 any, T2 any](sourceList []T2) []T1 {
+func CreateList[T1 any, T2 any](sourceList []T2, c FieldConversionConfig) []T1 {
 	var aimList []T1
 	for _, item := range sourceList {
 		var aim T1
-		v := CopyStruct(item, aim)
+		v := CopyStructAdv(item, aim, c)
 		aimList = append(aimList, v)
 	}
 	return aimList
