@@ -3,6 +3,7 @@ package cast2
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/golang-module/carbon"
 	"github.com/spf13/cast"
 	"log"
@@ -75,17 +76,17 @@ func ToString(v any) string {
 }
 
 // CopyStruct 匹配到及赋值
-func CopyStruct[T1 any, T2 any](a1 T1, a2 T2) T2 {
-	return CopyStructMapping[T1, T2](a1, a2, map[string]string{})
+func CopyStruct[T1 any, T2 any](original T1, aim T2) T2 {
+	return CopyStructMapping[T1, T2](original, aim, map[string]string{})
 }
 
 // CopyStructMapping 将目标字段映射赋值
-func CopyStructMapping[T1 any, T2 any](a1 T1, a2 T2, mapConfig map[string]string) T2 {
-	aimTypeOf := reflect.TypeOf(a2)
-	aimElem := reflect.ValueOf(&a2).Elem()
+func CopyStructMapping[T1 any, T2 any](original T1, aim T2, mapConfig map[string]string) T2 {
+	aimTypeOf := reflect.TypeOf(aim)
+	aimElem := reflect.ValueOf(&aim).Elem()
 
-	t := reflect.TypeOf(a1)
-	v := reflect.ValueOf(a1)
+	t := reflect.TypeOf(original)
+	v := reflect.ValueOf(original)
 	var discardField []string
 
 	for k := 0; k < t.NumField(); k++ {
@@ -99,7 +100,7 @@ func CopyStructMapping[T1 any, T2 any](a1 T1, a2 T2, mapConfig map[string]string
 			aimFieldName = fv
 		}
 
-		// 判断 a2 中是否包含该字段
+		// 判断 aim 中是否包含该字段
 		if _, ok := aimTypeOf.FieldByName(aimFieldName); ok {
 			// 判断字段类型是否一致，是否需要转换跳过
 			aimFieldKind := aimElem.FieldByName(aimFieldName).Kind()
@@ -108,8 +109,8 @@ func CopyStructMapping[T1 any, T2 any](a1 T1, a2 T2, mapConfig map[string]string
 				fieldValue = reflect.ValueOf(carbon.Parse(fieldValue.Interface().(string)).Carbon2Time())
 			} else if aimFieldKind == reflect.String && (sourceFieldKind == reflect.Struct || sourceFieldKind == reflect.Array || sourceFieldKind == reflect.Slice) {
 				//fmt.Println("******| ", aimFieldName)
-				// a1 是结构体 或者 数组
-				// a2 是字符串，自动将 a1 的值转成json 存 a2
+				// original 是结构体 或者 数组
+				// aim 是字符串，自动将 original 的值转成json 存 aim
 				fvb, err := json.Marshal(fieldValue.Interface())
 				if err != nil {
 					//fmt.Println("discard 1 ------| ", aimFieldName, "source:", sourceFieldKind, "aim:", aimFieldKind)
@@ -118,18 +119,21 @@ func CopyStructMapping[T1 any, T2 any](a1 T1, a2 T2, mapConfig map[string]string
 				}
 				fieldValue = reflect.ValueOf(string(fvb))
 			} else if sourceFieldKind != aimFieldKind {
-				fv, err := ReflectConversion(fieldValue, aimFieldKind)
+				fv, err := reflectConversion(fieldValue, aimFieldKind)
 				if err != nil {
 					//fmt.Println("discard 2 ------| ", aimFieldName, "source:", sourceFieldKind, "aim:", aimFieldKind)
 					discardField = append(discardField, sourceFieldName)
 					continue
 				} else {
+
 					fieldValue = fv
 				}
 			}
-
+			//fmt.Println("赋值 ------| ", aimFieldName, "source:", sourceFieldKind, "aim:", aimFieldKind, "fieldValue:", fieldValue)
 			// 赋值
 			aimElem.FieldByName(aimFieldName).Set(fieldValue)
+		} else {
+			fmt.Println("目标字段不存在 ------| ", aimFieldName, "source:", sourceFieldKind, "fieldValue:", fieldValue)
 		}
 	}
 
@@ -139,10 +143,28 @@ func CopyStructMapping[T1 any, T2 any](a1 T1, a2 T2, mapConfig map[string]string
 		log.Println("")
 	}
 
-	return a2
+	return aim
 }
 
-func ReflectConversion(sourceFieldValue reflect.Value, aimFieldKind reflect.Kind) (reflect.Value, error) {
+func To[T any](sourceValue any) (aim T, err error) {
+	vo := reflect.ValueOf(sourceValue)
+	v, err := reflectConversion(vo, reflect.TypeOf(aim).Kind())
+	if err != nil {
+		return
+	}
+	aim = v.Interface().(T)
+	return
+}
+
+func GetColumn[T any, T2 any](list []T2, key string) []T {
+	var vl []T
+	for _, i2 := range list {
+		vl = append(vl, GetStructValue(i2, key).(T))
+	}
+	return vl
+}
+
+func reflectConversion(sourceFieldValue reflect.Value, aimFieldKind reflect.Kind) (reflect.Value, error) {
 	switch aimFieldKind {
 	case reflect.Float64:
 		return doReflectConversion[float64](sourceFieldValue)
@@ -233,7 +255,7 @@ func ErgodicObj(obj interface{}, fn func(fieldName string)) {
 	}
 }
 
-func StructValue[T any](data T, field string) any {
+func GetStructValue[T any](data T, field string) any {
 	v := reflect.ValueOf(data)
 	fv := v.FieldByName(field)
 	if fv.Kind() == reflect.Invalid {
