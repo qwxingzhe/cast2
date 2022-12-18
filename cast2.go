@@ -264,15 +264,15 @@ func typeConversion(source any, output interface{}) (err error) {
 		if s, err := cast.ToStringE(source); err == nil {
 			valueOf.SetString(s)
 		}
-	case float64:
+	case float32, float64:
 		if s, err := cast.ToFloat64E(source); err == nil {
 			valueOf.SetFloat(s)
 		}
-	case uint:
+	case uint, uint8, uint16, uint32, uint64:
 		if s, err := cast.ToUint64E(source); err == nil {
 			valueOf.SetUint(s)
 		}
-	case int:
+	case int, int8, int16, int32, int64:
 		if s, err := cast.ToInt64E(source); err == nil {
 			valueOf.SetInt(s)
 		}
