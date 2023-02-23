@@ -86,6 +86,18 @@ type FieldConversionConfig struct {
 	ReplaceField            map[string]string //需要进行的字段替换配置（源字段:新字段）
 }
 
+func StructValue[T any](data T, field string) any {
+	v := reflect.ValueOf(data)
+	fv := v.FieldByName(field)
+	if fv.Kind() == reflect.Invalid {
+		return nil
+	}
+	if fv.CanInterface() {
+		return fv.Interface()
+	}
+	return nil
+}
+
 // CopyStructAdv 将目标字段映射赋值
 func CopyStructAdv[T1 any, T2 any](original T1, aim T2, c FieldConversionConfig) T2 {
 
