@@ -11,6 +11,16 @@ import (
 	"sort"
 )
 
+// ToListMap 将list转换成指定key为下标的map
+func ToListMap[TKey comparable, T any](list []T, keyName string) map[TKey]T {
+	data := make(map[TKey]T)
+	for _, item := range list {
+		kv := StructValue(item, keyName).(TKey)
+		data[kv] = item
+	}
+	return data
+}
+
 func ToMap(obj interface{}) map[string]interface{} {
 	return ToMapByTag(obj, "")
 }
