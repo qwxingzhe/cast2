@@ -194,10 +194,10 @@ func To[T any](sourceValue any) (aim T, err error) {
 	return
 }
 
-func GetColumn[T any, T2 any](list []T2, key string) []T {
-	var vl []T
+func GetColumn[TField any, TList any](list []TList, key string) []TField {
+	var vl []TField
 	for _, i2 := range list {
-		vl = append(vl, GetStructValue(i2, key).(T))
+		vl = append(vl, GetStructValue(i2, key).(TField))
 	}
 	return vl
 }
