@@ -90,6 +90,10 @@ func ToString(v any) string {
 func CopyStruct[T1 any, T2 any](original T1, aim T2) T2 {
 	return CopyStructAdv[T1, T2](original, aim, FieldConversionConfig{})
 }
+func CreateStruct[T2 any, T1 any](original T1) T2 {
+	var aim T2
+	return CopyStructAdv[T1, T2](original, aim, FieldConversionConfig{})
+}
 
 type FieldConversionConfig struct {
 	PartialConversionFields []string          //需要进行部分转换的字段，未设置则进行全部转换（源字段）
