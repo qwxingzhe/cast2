@@ -21,6 +21,13 @@ func ToListMap[TKey comparable, T any](list []T, keyName string) map[TKey]T {
 	return data
 }
 
+func FormatSelf[T any](info T) T {
+	if obj, ok := interface{}(info).(interface{ Format() T }); ok {
+		info = obj.Format()
+	}
+	return info
+}
+
 func ToMap(obj interface{}) map[string]interface{} {
 	return ToMapByTag(obj, "")
 }
@@ -184,6 +191,8 @@ func CopyStructAdv[T1 any, T2 any](original T1, aim T2, c FieldConversionConfig)
 		log.Println("discardField : ", discardField)
 		log.Println("")
 	}
+
+	aim = FormatSelf(aim)
 
 	return aim
 }
