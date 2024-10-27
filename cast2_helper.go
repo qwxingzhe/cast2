@@ -1,6 +1,9 @@
 package cast2
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // InStrings 判断字符串是否在字符串数组中
 func InStrings(target string, arr []string) bool {
@@ -15,4 +18,18 @@ func InStringsSorted(target string, arr []string) bool {
 		return true
 	}
 	return false
+}
+
+func ToSlice[T any](s, sep string) (list2 []T, err error) {
+	list := strings.Split(s, sep)
+	list2 = make([]T, len(list))
+
+	for i, s2 := range list {
+		value, err := To[T](s2)
+		if err != nil {
+			return nil, err
+		}
+		list2[i] = value
+	}
+	return list2, nil
 }
